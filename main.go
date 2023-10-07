@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -25,6 +26,13 @@ const cwe_other = "NVD-CWE-Other"
 
 var cve_infos []CVEInfo
 var wg sync.WaitGroup
+
+// Flags variables
+var (
+	cve_keyword string
+	worker_num  int
+	cwe_range   int
+)
 
 func cve_info_curl(keyword string) {
 	var info CVEInfo
@@ -129,7 +137,7 @@ func excel_output(name string) int {
 			if j > 0 {
 				cwe_infos += "\n"
 			}
-			cwe_infos += cweId + ":" + cweDesc
+			cwe_infos += cweId + ": " + cweDesc
 			cnt++
 		}
 		f.SetCellValue(sheet_name, "D"+index, cwe_infos)
@@ -155,16 +163,19 @@ func worker_range_cwe_get(start int, cwe_range int) {
 	fmt.Printf("Get %d-%d %d cwe\n", start, start+cwe_range-1, cwe_range)
 }
 
+func init() {
+	flag.StringVar(&cve_keyword, "keyword", "usb", "Keyword for searching CVE list")
+	flag.IntVar(&worker_num, "worker", 10, "Maximum number of concurrent coroutines")
+	flag.IntVar(&cwe_range, "range", 10, "Search range for each coroutines")
+}
+
 func main() {
-	cve_keyword := "usb"
+	flag.Parse()
+
 	cve_info_curl(cve_keyword)
 
 	cve_num := len(cve_infos)
 	fmt.Printf("Get %d %s cve infos\n", cve_num, cve_keyword)
-
-	// TOOD: 参数化
-	worker_num := 10
-	cwe_range := 10
 
 	total := cve_num
 	start := 0
