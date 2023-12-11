@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,6 +34,7 @@ var (
 	cve_keyword string
 	worker_num  int
 	cwe_range   int
+	https_proxy string
 )
 
 func cve_info_curl(keyword string) {
@@ -167,10 +170,20 @@ func init() {
 	flag.StringVar(&cve_keyword, "keyword", "usb", "Keyword for searching CVE list")
 	flag.IntVar(&worker_num, "worker", 10, "Maximum number of concurrent coroutines")
 	flag.IntVar(&cwe_range, "range", 10, "Search range for each coroutines")
+	flag.StringVar(&https_proxy, "proxy", "", "Set https proxy for the entry program")
 }
 
 func main() {
 	flag.Parse()
+
+	if https_proxy != "" {
+		proxy_url, err := url.Parse(https_proxy)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		http.DefaultTransport = &http.Transport{Proxy: http.ProxyURL(proxy_url)}
+	}
 
 	cve_info_curl(cve_keyword)
 
